@@ -44,13 +44,12 @@ passport.deserializeUser(function(user, done) {
 Issuer.discover('http://localhost:3000/oidc') 
   .then(function (oidcIssuer) {
     var client = new oidcIssuer.Client({
-      client_id: 'oidcCLIENT',
-      client_secret: 'Some_super_secret',
-      grant_types: ["authorization_code"],    
-      redirect_uris: ["http://localhost:8080/login/callback"],
-      response_types: ['code'], 
-      
-    });
+      client_id: "oidcCLIENT",      
+      client_secret: "Some_super_secret",      
+      grant_types: ["authorization_code"],      
+      redirect_uri: [ 'http://localhost:8080/login/callback'], 
+      response_types: ["code"]
+   });
 
     passport.use(
       'oidc',
