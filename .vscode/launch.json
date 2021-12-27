@@ -7,11 +7,20 @@
         {
             "type": "pwa-node",
             "request": "launch",
-            "name": "Launch Program",
+            "name": "Authentication Server",
             "skipFiles": [
                 "<node_internals>/**"
             ],
             "program": "${workspaceFolder}\\express.js"
+        },
+        {
+            "type": "pwa-node",
+            "request": "launch",
+            "name": "Resource Owner",
+            "skipFiles": [
+                "<node_internals>/**"
+            ],
+            "program": "${workspaceFolder}\\client\\client.js"
         }
     ]
 }
