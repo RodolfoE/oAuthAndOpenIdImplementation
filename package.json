@@ -1,0 +1,17 @@
+{
+  "name": "epoc_oauth",
+  "version": "1.0.0",
+  "description": "",
+  "main": "express.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.17.2",
+    "helmet": "^4.6.0",
+    "lodash": "^4.17.21",
+    "oidc-provider": "^7.10.4"
+  }
+}
