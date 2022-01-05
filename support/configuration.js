@@ -5,7 +5,7 @@ module.exports = {
          client_secret: 'Some_super_secret',
          grant_types: ['refresh_token', 'authorization_code'],
          response_types: ["code"],  
-         redirect_uris: ['https://oidcdebugger.com/debug'],
+         redirect_uris: ['http://localhost:8080/login/callback'],
        }
     ],
     pkce: {
@@ -29,9 +29,13 @@ module.exports = {
     features: {
       devInteractions: { enabled: false }, // defaults to true
   
-      deviceFlow: { enabled: true }, // defaults to false
+      deviceFlow: { enabled: false }, // defaults to false
       revocation: { enabled: true }, // defaults to false
       issAuthResp: { enabled: true }, // defaults to false
+      backchannelLogout: {
+        enabled: true,
+        ack: 'draft-06', // < bundled is draft-08, but we're still acknowledging draft-06
+      },
     },
     jwks: {
       keys: [

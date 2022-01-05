@@ -53,7 +53,7 @@ Issuer.discover('http://localhost:3000/oidc')
 
     passport.use(
       'oidc',
-      new Strategy({ client,passReqToCallback: true}, (req, tokenSet, userinfo, done) => {
+      new Strategy({ client, usePKCE: false, passReqToCallback: true}, (req, tokenSet, userinfo, done) => {
         console.log("tokenSet",tokenSet);
         console.log("userinfo",userinfo);
         req.session.tokenSet = tokenSet;
