@@ -12,6 +12,16 @@ app.set('view engine', 'ejs');
 
 const configuration = require('./support/configuration');
 
+configuration.findAccount = async (ctx, id) => {
+    return {
+    accountId: id,
+    claims: async () => ({
+      sub: id,
+      preferred_username: id,
+    }),
+  }
+}
+
 const oidc = new Provider('http://localhost:3000',  { adapter, ...configuration} );
 
 app.use("/oidc",oidc.callback());
@@ -22,28 +32,59 @@ app.get('/view/:viewName', (req, res) => {
 
 app.get('/interaction/:uid', async (req, res, next) => {
   const details = await oidc.interactionDetails(req, res);
-  console.log(details);
-
-  switch(details.prompt.name){
-    case 'login':
-      res.statusCode = 303; // eslint-disable-line no-param-reassign
-      res.setHeader('Location', `http://localhost:3000/view/login?jti=${details.jti}`);
-      res.setHeader('Content-Length', '0');
-      res.end();
-      break;
-    case 'consent':
-      res.statusCode = 303; // eslint-disable-line no-param-reassign
-      res.setHeader('Location', `http://localhost:3000/view/interation?jti=${details.jti}`);
-      res.setHeader('Content-Length', '0');
-      res.end();
-      break;
-  }  
+  if (details.prompt.name === 'consent'){
+    return await conceiveGrant(req, res);
+  }
+  return await authenticate(req, res);
 });
 
-app.post('/interaction/:uid/confirm', async (req, res, next) => {
-  const details = await oidc.interactionDetails(req, res);
-  details = null;
-});
+const authenticate = async (req, res) => {
+  const result = {
+    // authentication/login prompt got resolved, omit if no authentication happened, i.e. the user
+    // cancelled
+    login: {
+      accountId: 'rodolfo', // logged-in account id
+      acr: 'string', // acr value for the authentication
+      remember: true, // true if provider should use a persistent cookie rather than a session one, defaults to true
+      ts: now(), // unix timestamp of the authentication, defaults to now()
+    }
+  }
+  await oidc.interactionFinished(req, res, result);
+}
+
+const conceiveGrant = async (req, res) => {
+  const {
+    prompt: { name, details }, grantId, session, params, missingOIDCScope, missingOIDCClaims, missingResourceScopes
+  } = await oidc.interactionDetails(req, res);
+  let grant;
+  if (grantId) {
+    // we'll be modifying existing grant in existing session
+    grant = await oidc.Grant.find(grantId);
+  } else {
+    // we're establishing a new grant
+    grant = new oidc.Grant({
+      accountId: session.accountId,
+      clientId: params.client_id,
+    });
+  }
+
+  if (missingOIDCScope) {
+    grant.addOIDCScope(missingOIDCScope.join(' '));
+  }
+  if (missingOIDCClaims) {
+    grant.addOIDCClaims(missingOIDCClaims);
+  }
+  if (missingResourceScopes) {
+    // eslint-disable-next-line no-restricted-syntax
+    for (const [indicator, scope] of Object.entries(missingResourceScopes)) {
+      grant.addResourceScope(indicator, scope.join(' '));
+    }
+  }
+
+  const result = { consent: { grantId: await grant.save() } };
+  await oidc.interactionFinished(req, res, result, {mergeWithLastSubmission: true});
+}
+
 
 app.post('/interaction/:uid/login', async (req, res) => {
   const result = {
@@ -54,17 +95,10 @@ app.post('/interaction/:uid/login', async (req, res) => {
       acr: 'string', // acr value for the authentication
       remember: true, // true if provider should use a persistent cookie rather than a session one, defaults to true
       ts: now(), // unix timestamp of the authentication, defaults to now()
-    },
-  
-    // consent was given by the user to the client for this session
-    consent: {
-      grantId: 'string', // the identifer of Grant object you saved during the interaction, resolved by Grant.prototype.save()
-    },
-  
-    ['custom prompt name resolved']: {},
+    }
   }
-  const finishedResult = await oidc.interactionFinished(req, res, result); // result object below
-  return finishedResult;
+  await oidc.interactionFinished(req, res, result);
+  await next();
 });
 
 app.listen(3000, function () {

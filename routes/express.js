@@ -68,7 +68,7 @@ module.exports = (app, provider) => {
           });
         }
         case 'consent': {
-          return res.render('interaction', {
+          return res.render('interation', {
             client,
             uid,
             details: prompt.details,

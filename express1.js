@@ -23,11 +23,7 @@ app.set('view engine', 'ejs');
 
 let server;
 (async () => {
-  let adapter;
-  if (true || process.env.MONGODB_URI) {
-    adapter = require('./adapters/general'); // eslint-disable-line global-require
-    await adapter.connect();
-  }
+  const adapter = require('./adapters/general.js')
 
   const prod = process.env.NODE_ENV === 'production';
 

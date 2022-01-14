@@ -2,10 +2,13 @@ module.exports = {
     clients: [
        {
          client_id: 'oidcCLIENT',
-         client_secret: 'Some_super_secret',
+         client_secret: '123456',
          grant_types: ['refresh_token', 'authorization_code'],
          response_types: ["code"],  
-         redirect_uris: ['http://localhost:8080/login/callback'],
+         redirect_uris: [
+           'http://localhost:8080/login/callback', 
+           'http://localhost:8083/login/callback'
+          ],
        }
     ],
     pkce: {
