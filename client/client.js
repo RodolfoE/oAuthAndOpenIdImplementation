@@ -44,7 +44,7 @@ passport.deserializeUser(function(user, done) {
 const securityUi = 'http://localhost:8080/security/api/auth/oidc';
 const epoch = 'http://localhost:3000/oidc';
 
-Issuer.discover(epoch) 
+Issuer.discover(securityUi) 
   .then(function (oidcIssuer) {
     var client = new oidcIssuer.Client({
       client_id: "oidcCLIENT",      
