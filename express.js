@@ -10,39 +10,27 @@ app.use(express.static(__dirname + '/public'));
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'ejs');
 
-
-const { urlencoded } = require('express'); // eslint-disable-line import/no-unresolved
-
-const body = urlencoded({ extended: false });
-
 const { strict: assert } = require('assert');
-const querystring = require('querystring');
-const { inspect } = require('util');
-
-const isEmpty = require('lodash/isEmpty');
-
-
-const keys = new Set();
-const debug = (obj) => querystring.stringify(Object.entries(obj).reduce((acc, [key, value]) => {
-  keys.add(key);
-  if (isEmpty(value)) return acc;
-  acc[key] = inspect(value, { depth: null });
-  return acc;
-}, {}), '<br/>', ': ', {
-  encodeURIComponent(value) { return keys.has(value) ? `<strong>${value}</strong>` : value; },
-});
 
 const configuration = require('./support/configuration');
 
-configuration.findAccount = async (ctx, id) => {
+configuration.findAccount = async function(ctx, id, token) {
     return {
-    accountId: id,
-    claims: async () => ({
-      sub: id,
-      preferred_username: id,
-    }),
+      accountId: 'rodolfo',
+      async claims(use, scope, claims, rejected) {
+        return {
+          sub: 'rodolfo',
+          profile: ['asdf', 'DASHBOARD:READ']
+        };
+      },
   }
 }
+
+app.use((req, res, next) => {
+  console.log(req.url);
+  
+  next();
+});
 
 const provider = new Provider('http://localhost:3000',  { adapter, ...configuration} );
 
@@ -50,20 +38,6 @@ app.use("/oidc", provider.callback());
 
 const { constructor: { errors: { SessionNotFound } } } = provider;
 
-app.use((req, res, next) => {
-  const orig = res.render;
-  // you'll probably want to use a full blown render engine capable of layouts
-  res.render = (view, locals) => {
-    app.render(view, locals, (err, html) => {
-      if (err) throw err;
-      orig.call(res, '_layout', {
-        ...locals,
-        body: html,
-      });
-    });
-  };
-  next();
-});
 
 function setNoCache(req, res, next) {
   res.set('Pragma', 'no-cache');
@@ -77,36 +51,12 @@ app.get('/interaction/:uid', setNoCache, async (req, res, next) => {
       uid, prompt, params, session,
     } = await provider.interactionDetails(req, res);
 
-    const client = await provider.Client.find(params.client_id);
-
     switch (prompt.name) {
       case 'login': {
-        return res.render('login', {
-          client,
-          uid,
-          details: prompt.details,
-          params,
-          title: 'Sign-in',
-          session: session ? debug(session) : undefined,
-          dbg: {
-            params: debug(params),
-            prompt: debug(prompt),
-          },
-        });
+        return doLogin(req, res, next);
       }
       case 'consent': {
-        return res.render('interaction', {
-          client,
-          uid,
-          details: prompt.details,
-          params,
-          title: 'Authorize',
-          session: session ? debug(session) : undefined,
-          dbg: {
-            params: debug(params),
-            prompt: debug(prompt),
-          },
-        });
+        return doConsent(req, res, next);
       }
       default:
         return undefined;
@@ -116,7 +66,7 @@ app.get('/interaction/:uid', setNoCache, async (req, res, next) => {
   }
 });
 
-app.post('/interaction/:uid/login', setNoCache, body, async (req, res, next) => {
+const doLogin = async (req, res, next) => {
   try {
     const { prompt: { name } } = await provider.interactionDetails(req, res);
     assert.equal(name, 'login');
@@ -138,9 +88,9 @@ app.post('/interaction/:uid/login', setNoCache, body, async (req, res, next) => 
   } catch (err) {
     next(err);
   }
-});
+};
 
-app.post('/interaction/:uid/confirm', setNoCache, body, async (req, res, next) => {
+const doConsent = async (req, res, next) => {
   try {
     const interactionDetails = await provider.interactionDetails(req, res);
     const { prompt: { name, details }, params, session: { accountId } } = interactionDetails;
@@ -186,7 +136,7 @@ app.post('/interaction/:uid/confirm', setNoCache, body, async (req, res, next) =
   } catch (err) {
     next(err);
   }
-});
+}
 
 app.get('/interaction/:uid/abort', setNoCache, async (req, res, next) => {
   try {

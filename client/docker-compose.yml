@@ -1,0 +1,12 @@
+version: '3.7'
+
+services:
+  epoch:
+    build: .
+    image: eleeveryze/epoch_oauth2:1.0.1
+    container_name: epoch_oauth
+    restart: always
+    ports:
+      - 8080:8083
+    environment:
+      CUSTOMER_PORTAL: https://dev.portal.my.sms-group.com/security/api/auth/oidc
